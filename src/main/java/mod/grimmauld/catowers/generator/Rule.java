@@ -12,14 +12,23 @@ public enum Rule {
 	CONWAYS((c, a) -> c == 3 || (a && c == 2), true),
 	HIGHLIFE((c, a) -> c == 3 || (!a && c == 6) || (a && c == 2), true),
 	// SUDDEN_DEATH((c, a) -> c == 3, true),
-	GRIMM((c, a) -> c == 3 || c == 4 || (a && c == 2), false);
+	PYRAMID((c, a) -> c == 3 || c == 4 || (a && c == 2), false),
 
-	/*
-	CONWAYS((c, layers, offset) -> {
+	GRIMM2((x, layers, offset) -> {
 		boolean a = isAlive(layers, offset, 1);
-		return c == 3 || (a && c == 2);
-	});
-	*/
+		boolean c = isAlive(layers, offset, 3);
+		boolean d = isAlive(layers, offset, 4);
+		return (x == 2 && a) || (x == 3) || (x == 4 && c) || (x == 5 && d);
+	}, false),
+
+	GRIMM3((x, layers, offset) -> {
+		boolean a = isAlive(layers, offset, 1);
+		boolean b = isAlive(layers, offset, 2);
+		boolean c = isAlive(layers, offset, 3);
+		boolean d = isAlive(layers, offset, 4);
+		return (x == 2 && a) || (x == 3) || (x == 4 && b) || (x == 5 && c) || (x == 6 && d);
+	}, false);
+
 
 	private static final Rule[] values = values(); // buffer bc efficiency
 	private static final int length = values.length;
@@ -40,6 +49,10 @@ public enum Rule {
 	}
 
 	static boolean isAlive(List<Set<Vec3i>> layers, Vec3i test, int yOffset) {
-		return layers.size() - yOffset >= 0 && layers.get(layers.size() - yOffset).contains(test.down(-yOffset));
+		try {
+			return layers.get(layers.size() - yOffset).contains(test.down(-yOffset));
+		} catch (IndexOutOfBoundsException e) {
+			return false;
+		}
 	}
 }
