@@ -21,13 +21,7 @@ public class GenStructureCommand {
 	}
 
 	private static int run(CommandSource source, BlockPos pos, Random random) {
-		System.out.println(source);
-		System.out.println(pos);
-		System.out.println(random);
-		System.out.println();
-
 		Generator.generate(source.getWorld(), pos, random);
-
 		return 1;
 	}
 }
