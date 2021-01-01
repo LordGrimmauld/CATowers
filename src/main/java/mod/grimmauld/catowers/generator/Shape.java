@@ -1,6 +1,5 @@
 package mod.grimmauld.catowers.generator;
 
-import mod.grimmauld.catowers.decorator.StructureMetaInf;
 import mod.grimmauld.catowers.util.AllOffsets;
 import net.minecraft.util.math.Vec3i;
 import net.minecraftforge.common.util.TriPredicate;

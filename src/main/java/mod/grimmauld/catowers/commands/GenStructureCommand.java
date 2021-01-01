@@ -2,8 +2,8 @@ package mod.grimmauld.catowers.commands;
 
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
-import mod.grimmauld.catowers.decorator.Decorator;
-import mod.grimmauld.catowers.decorator.StructureMetaInf;
+import mod.grimmauld.catowers.generator.Decorator;
+import mod.grimmauld.catowers.generator.StructureMetaInf;
 import mod.grimmauld.catowers.generator.Generator;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;

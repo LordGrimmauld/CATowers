@@ -1,7 +1,6 @@
 package mod.grimmauld.catowers.generator;
 
 import mod.grimmauld.catowers.CATowers;
-import mod.grimmauld.catowers.decorator.StructureMetaInf;
 import mod.grimmauld.catowers.util.AllOffsets;
 import net.minecraft.command.CommandSource;
 import net.minecraft.util.math.BlockPos;
@@ -32,7 +31,7 @@ public class Generator {
 
 		// replace solid blocks?
 		boolean replaceSolidBlocks = false;
-		Predicate<Vec3i> canBeReplaced = replaceSolidBlocks ? offset -> true : offset -> world.getBlockState(start.add(offset)).isAir(world, start.add(offset));
+		Predicate<Vec3i> canBeReplaced = replaceSolidBlocks ? offset -> true : offset -> !world.getBlockState(start.add(offset)).isSolid();
 
 		// radius of the seed
 		int radius = rangeMultiplier + (int) (-rangeMultiplier * Math.log10(random.nextDouble()));
