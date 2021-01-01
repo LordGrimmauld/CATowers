@@ -2,13 +2,18 @@ package mod.grimmauld.catowers.commands;
 
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
+import mod.grimmauld.catowers.decorator.Decorator;
 import mod.grimmauld.catowers.generator.Generator;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.command.arguments.BlockPosArgument;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.text.ITextComponent;
 
 import java.util.Random;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class GenStructureCommand {
 	public static ArgumentBuilder<CommandSource, ?> register() {
@@ -21,7 +26,9 @@ public class GenStructureCommand {
 	}
 
 	private static int run(CommandSource source, BlockPos pos, Random random) {
-		Generator.generate(source.getWorld(), pos, random);
+		Consumer<ITextComponent> feedback = component -> source.sendFeedback(component, true);
+		Set<Vec3i> structure = Generator.generate(source, pos, random);
+		Decorator.decorate(structure, source.getWorld(), pos, random, feedback);
 		return 1;
 	}
 }

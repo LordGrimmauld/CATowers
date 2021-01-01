@@ -1,9 +1,12 @@
 package mod.grimmauld.catowers.generator;
 
+import mod.grimmauld.catowers.CATowers;
 import mod.grimmauld.catowers.util.AllOffsets;
-import net.minecraft.block.Blocks;
+import net.minecraft.command.CommandSource;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.IWorld;
 
 import java.util.*;
@@ -11,33 +14,46 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Generator {
-	public static final int rangeMultiplier = 8;
-	public static final double fillPercent = .5;
+	private static final ITextComponent noRuleFound = new TranslationTextComponent(CATowers.MODID + ".no_rule_found");
+	public static final int rangeMultiplier = 6;
+	public static final double fillPercent = .4;
 
-	public static void generate(IWorld world, BlockPos start, Random random) {
-		int range = rangeMultiplier + (int) (-rangeMultiplier * Math.log10(random.nextDouble()));
-		Predicate<Vec3i> canBeReplaced = offset -> world.getBlockState(start.add(offset)).isAir(world, start.add(offset));
-		Set<Vec3i> currentLayer = Shape.getRandomShape(random).generate(range, () -> random.nextDouble() < fillPercent, random.nextBoolean(), canBeReplaced);
-		List<Set<Vec3i>> layers = new ArrayList<>();
-
-		boolean shouldCountSelfAsNeighbor = random.nextBoolean();
+	public static Set<Vec3i> generate(CommandSource source, BlockPos start, Random random) {
+		// CA Rule
 		Rule rule = Rule.getRandomRule(random);
+		if (rule == null) {
+			source.sendErrorMessage(noRuleFound);
+			return new HashSet<>();
+		}
+		// sendFeedback.accept(new StringTextComponent("Generating structure with rule set " + rule));
 
+		// replace solid blocks?
+		boolean replaceSolidBlocks = false;
+		IWorld world = source.getWorld();
+		Predicate<Vec3i> canBeReplaced = replaceSolidBlocks ? offset -> true : offset -> world.getBlockState(start.add(offset)).isAir(world, start.add(offset));
+
+		// radius of the seed
+		int radius = rangeMultiplier + (int) (-rangeMultiplier * Math.log10(random.nextDouble()));
+		// seed
+		Set<Vec3i> currentLayer = Shape.getRandomShape(random).generate(radius, () -> random.nextDouble() < fillPercent, random.nextBoolean(), canBeReplaced);
+
+
+		// generate
+		List<Set<Vec3i>> layers = new ArrayList<>();
 		while (!currentLayer.isEmpty()) {
 			layers.add(currentLayer);
 			Map<Vec3i, Integer> countMap = new HashMap<>();
 			currentLayer.forEach(pos -> AllOffsets.offsets.stream()
 				.map(offset -> new Vec3i(pos.getX() + offset.getX(), pos.getY() - 1, pos.getZ() + offset.getZ()))
-				.filter(canBeReplaced).forEach(offset -> countMap.put(offset, countMap.getOrDefault(offset, 0) + (shouldCountSelfAsNeighbor || !pos.down().equals(offset) ? 1 : 0))));
+				.filter(canBeReplaced).forEach(offset -> countMap.put(offset, countMap.getOrDefault(offset, 0) + (!pos.down().equals(offset) ? 1 : 0))));
 			currentLayer = countMap.keySet().stream().filter(pos -> rule.rule.test(countMap.get(pos), layers, pos)).collect(Collectors.toSet());
 		}
-		layers.forEach(l -> l.forEach(pos -> world.setBlockState(start.add(pos), Blocks.STONE.getDefaultState(), 3)));
+		Set<Vec3i> structure = new HashSet<>();
+		layers.forEach(structure::addAll);
 
 		// mirror upwards
-		System.out.println(0.5 / Math.log(layers.size()));
-		if (rule.canMirror && start.getY() + layers.size() < 256 && layers.size() > 1 && .7 / Math.log(layers.size()) > random.nextDouble()) {
-			layers.forEach(l -> l.stream().map(pos -> start.add(pos.getX(), -pos.getY(), pos.getZ())).filter(canBeReplaced).forEach(pos ->
-				world.setBlockState(pos, Blocks.STONE.getDefaultState(), 3)));
-		}
+		if (rule.canMirror && layers.size() > 1 && .7 / Math.log(layers.size()) > random.nextDouble())
+			layers.forEach(l -> l.stream().map(offset -> new Vec3i(offset.getX(), -offset.getY(), offset.getZ())).filter(canBeReplaced).forEach(structure::add));
+		return structure;
 	}
 }
