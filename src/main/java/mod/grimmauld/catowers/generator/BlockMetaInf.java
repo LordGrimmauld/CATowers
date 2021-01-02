@@ -6,92 +6,109 @@ import net.minecraft.util.LazyValue;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 public class BlockMetaInf extends Vec3i {
 	private StructureMetaInf structure;
 	private final BlockPos pos;
-	private final LazyValue<Boolean> supported;
-	private final LazyValue<Boolean> openNorth;
-	private final LazyValue<Boolean> openSouth;
-	private final LazyValue<Boolean> openTop;
-	private final LazyValue<Boolean> openBottom;
-	private final LazyValue<Boolean> openWest;
-	private final LazyValue<Boolean> openEast;
+	private final LazyValue<Boolean> unsupported;
+	private final LazyValue<Vec3i> northNeighbor;
+	private final LazyValue<Vec3i> southNeighbor;
+	private final LazyValue<Vec3i> topNeighbor;
+	private final LazyValue<Vec3i> bottomNeighbor;
+	private final LazyValue<Vec3i> westNeighbor;
+	private final LazyValue<Vec3i> eastNeighbor;
 
 	public BlockMetaInf(StructureMetaInf structure, Vec3i offset) {
-		super(offset.getX(), offset.getY(), offset.getZ());
+		this(structure, offset.getX(), offset.getY(), offset.getZ());
+	}
+
+	public BlockMetaInf(StructureMetaInf structure, int x, int y, int z) {
+		super(x, y, z);
 		this.structure = structure;
-		pos = structure.getAnchor().add(offset);
+		pos = structure.getAnchor().add(this);
 
 		// Lazy values (for performance)
-		supported = new LazyValue<>(() -> Arrays.stream(Direction.values()).map(d -> offset.offset(d, 1)).anyMatch(structure::contains));
-		openEast = new LazyValue<>(this::isOpenEast);
-		openTop = new LazyValue<>(this::isOpenTop);
-		openSouth = new LazyValue<>(this::isOpenSouth);
-		openWest = new LazyValue<>(this::isOpenWest);
-		openBottom = new LazyValue<>(this::isOpenBottom);
-		openNorth = new LazyValue<>(this::isOpenBottom);
+		unsupported = new LazyValue<>(() -> Arrays.stream(Direction.values()).map(d -> offset(d, 1)).noneMatch(structure::contains));
+		eastNeighbor = new LazyValue<>(this::calculateEastNeighbor);
+		topNeighbor = new LazyValue<>(this::calculateTopNeighbor);
+		southNeighbor = new LazyValue<>(this::calculateSouthNeighbor);
+		westNeighbor = new LazyValue<>(this::calculateWestNeighbor);
+		bottomNeighbor = new LazyValue<>(this::calculateBottomNeighbor);
+		northNeighbor = new LazyValue<>(this::calculateNorthNeighbor);
 	}
 
 	public BlockPos getPos() {
 		return pos;
 	}
 
-	private Boolean isOpenNorth() {
+	@Nullable
+	private BlockMetaInf calculateNorthNeighbor() {
 		for (int z = structure.getMaxOffsetNorth(); z < getZ(); z++) {
-			if(structure.contains(new Vec3i(getX(), getY(), z)))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(getX(), getY(), z));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	private Boolean isOpenSouth() {
+	@Nullable
+	private BlockMetaInf calculateSouthNeighbor() {
 		for (int z = getZ() + 1; z <= structure.getMaxOffsetSouth(); z++) {
-			if(structure.contains(new Vec3i(getX(), getY(), z)))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(getX(), getY(), z));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	private Boolean isOpenTop() {
+	@Nullable
+	private BlockMetaInf calculateTopNeighbor() {
 		for (int y = getY() + 1; y <= structure.getMaxOffsetTop(); y++) {
-			if(structure.contains(new Vec3i(getX(), y, getZ())))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(getX(), y, getZ()));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	private Boolean isOpenBottom() {
+	@Nullable
+	private BlockMetaInf calculateBottomNeighbor() {
 		for (int y = structure.getMaxOffsetBottom(); y < getY(); y++) {
-			if(structure.contains(new Vec3i(getX(), y, getZ())))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(getX(), y, getZ()));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	private Boolean isOpenWest() {
+	@Nullable
+	private BlockMetaInf calculateWestNeighbor() {
 		for (int x = structure.getMaxOffsetWest(); x < getY(); x++) {
-			if(structure.contains(new Vec3i(x, getY(), getZ())))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(x, getY(), getZ()));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	private Boolean isOpenEast() {
+	@Nullable
+	private BlockMetaInf calculateEastNeighbor() {
 		for (int x = getX() + 1; x <= structure.getMaxOffsetEast(); x++) {
-			if(structure.contains(new Vec3i(x, getY(), getZ())))
-				return false;
+			BlockMetaInf test = structure.getFromOffset(new Vec3i(x, getY(), getZ()));
+			if(test != null)
+				return test;
 		}
-		return true;
+		return null;
 	}
 
-	public boolean isSupported() {
-		return supported.getValue();
+	public boolean unsupported() {
+		return unsupported.getValue();
 	}
 
 	public boolean isSupportingBlock() {
-		return Block.hasSolidSideOnTop(structure.getWorld(), pos.down()) && openBottom.getValue();
+		return Block.hasSolidSideOnTop(structure.getWorld(), pos.down()) && bottomNeighbor.getValue() == null;
 	}
 
 	public void updateStructure(StructureMetaInf structure) {

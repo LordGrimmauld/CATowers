@@ -1,16 +1,42 @@
 package mod.grimmauld.catowers.generator;
 
+import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IWorld;
 
-import java.util.HashSet;
-import java.util.function.Predicate;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.stream.Stream;
 
-public class StructureMetaInf extends HashSet<BlockMetaInf> {
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public class StructureMetaInf implements Set<BlockMetaInf> {
 	private final IWorld world;
 	private final BlockPos anchor;
+	private final HashMap<Vec3i, BlockMetaInf> map;
+	public int maxOffsetNorth = 0;
+	public int maxOffsetSouth = 0;
+	public int maxOffsetTop = 0;
+	public int maxOffsetBottom = 0;
+	public int maxOffsetWest = 0;
+	public int maxOffsetEast = 0;
+
+	public StructureMetaInf(IWorld world, BlockPos anchor) {
+		this.world = world;
+		this.anchor = anchor;
+		this.map = new HashMap<>();
+	}
+
+	public static StructureMetaInf toStructureMetaInf(Stream<Vec3i> stream, IWorld world, BlockPos anchor) {
+		StructureMetaInf inf = new StructureMetaInf(world, anchor);
+		stream.forEach(inf::add);
+		return inf;
+	}
 
 	public int getMaxOffsetNorth() {
 		return maxOffsetNorth;
@@ -36,30 +62,12 @@ public class StructureMetaInf extends HashSet<BlockMetaInf> {
 		return maxOffsetEast;
 	}
 
-	public int maxOffsetNorth = 0;
-	public int maxOffsetSouth = 0;
-	public int maxOffsetTop = 0;
-	public int maxOffsetBottom = 0;
-	public int maxOffsetWest = 0;
-	public int maxOffsetEast = 0;
-
-	public StructureMetaInf(IWorld world, BlockPos anchor) {
-		this.world = world;
-		this.anchor = anchor;
-	}
-
-	public static StructureMetaInf toStructureMetaInf(Stream<Vec3i> stream, IWorld world, BlockPos anchor) {
-		StructureMetaInf inf = new StructureMetaInf(world, anchor);
-		stream.forEachOrdered(inf::add);
-		return inf;
-	}
-
 	public void add(Vec3i offset) {
-		this.add(new BlockMetaInf(this, offset));
+		map.put(offset, new BlockMetaInf(this, offset));
 	}
 
 	public void update() {
-		for (BlockMetaInf blockMetaInf: this) {
+		for (BlockMetaInf blockMetaInf : map.values()) {
 			blockMetaInf.updateStructure(this);
 			maxOffsetEast = Math.max(maxOffsetEast, blockMetaInf.getX());
 			maxOffsetTop = Math.max(maxOffsetTop, blockMetaInf.getY());
@@ -70,6 +78,11 @@ public class StructureMetaInf extends HashSet<BlockMetaInf> {
 		}
 	}
 
+	@Nullable
+	public BlockMetaInf getFromOffset(Vec3i offset) {
+		return map.get(offset);
+	}
+
 	public BlockPos getAnchor() {
 		return anchor;
 	}
@@ -78,8 +91,76 @@ public class StructureMetaInf extends HashSet<BlockMetaInf> {
 		return world;
 	}
 
-	public StructureMetaInf filter(Predicate<BlockMetaInf> test) {
-		this.removeIf(offset -> !test.test(offset));
-		return this;
+	@Override
+	public int size() {
+		return map.size();
+	}
+
+	@Override
+	public boolean isEmpty() {
+		return map.isEmpty();
+	}
+
+	@Override
+	public boolean contains(Object o) {
+		return map.containsKey(o);
+	}
+
+	public boolean contains(Vec3i o) {
+		return map.containsKey(o);
+	}
+
+	@Override
+	public Iterator<BlockMetaInf> iterator() {
+		return map.values().iterator();
+	}
+
+	@Override
+	public Object[] toArray() {
+		return map.values().toArray();
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a) {
+		return map.values().toArray(a);
+	}
+
+	@Override
+	public boolean add(BlockMetaInf blockMetaInf) {
+		map.put(blockMetaInf, blockMetaInf);
+		return true;
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		return map.containsKey(o);
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		return map.keySet().containsAll(c);
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends BlockMetaInf> c) {
+		c.forEach(this::add);
+		return true;
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		this.removeIf(c::contains);
+		return true;
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		c.forEach(this::remove);
+		return true;
+	}
+
+	@Override
+	public void clear() {
+		map.clear();
 	}
 }

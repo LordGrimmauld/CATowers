@@ -16,7 +16,7 @@ public class Decorator {
 		structure.update();
 
 		if (filterFloatyBlocks) {
-			structure.filter(BlockMetaInf::isSupported);
+			structure.removeIf(BlockMetaInf::unsupported);
 		}
 
 		for (BlockMetaInf block : structure) {
