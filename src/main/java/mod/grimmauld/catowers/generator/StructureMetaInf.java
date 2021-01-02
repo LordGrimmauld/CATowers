@@ -7,10 +7,7 @@ import net.minecraft.world.IWorld;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 @ParametersAreNonnullByDefault
@@ -19,12 +16,17 @@ public class StructureMetaInf implements Set<BlockMetaInf> {
 	private final IWorld world;
 	private final BlockPos anchor;
 	private final HashMap<Vec3i, BlockMetaInf> map;
+
 	public int maxOffsetNorth = 0;
 	public int maxOffsetSouth = 0;
 	public int maxOffsetTop = 0;
 	public int maxOffsetBottom = 0;
 	public int maxOffsetWest = 0;
 	public int maxOffsetEast = 0;
+
+	private final HashMap<Integer, Set<BlockMetaInf>> layersX = new HashMap<>();
+	private final HashMap<Integer, Set<BlockMetaInf>> layersY = new HashMap<>();
+	private final HashMap<Integer, Set<BlockMetaInf>> layersZ = new HashMap<>();
 
 	public StructureMetaInf(IWorld world, BlockPos anchor) {
 		this.world = world;
@@ -67,14 +69,41 @@ public class StructureMetaInf implements Set<BlockMetaInf> {
 	}
 
 	public void update() {
+		maxOffsetNorth = 0;
+		maxOffsetSouth = 0;
+		maxOffsetTop = 0;
+		maxOffsetBottom = 0;
+		maxOffsetWest = 0;
+		maxOffsetEast = 0;
+
+		layersX.clear();
+		layersY.clear();
+		layersZ.clear();
+
 		for (BlockMetaInf blockMetaInf : map.values()) {
 			blockMetaInf.updateStructure(this);
-			maxOffsetEast = Math.max(maxOffsetEast, blockMetaInf.getX());
-			maxOffsetTop = Math.max(maxOffsetTop, blockMetaInf.getY());
-			maxOffsetSouth = Math.max(maxOffsetSouth, blockMetaInf.getZ());
-			maxOffsetWest = Math.min(maxOffsetWest, blockMetaInf.getX());
-			maxOffsetBottom = Math.min(maxOffsetBottom, blockMetaInf.getY());
-			maxOffsetNorth = Math.min(maxOffsetNorth, blockMetaInf.getZ());
+			int x = blockMetaInf.getX();
+			int y = blockMetaInf.getY();
+			int z = blockMetaInf.getZ();
+
+			Set<BlockMetaInf> layer = layersX.getOrDefault(x, new HashSet<>());
+			layer.add(blockMetaInf);
+			layersX.put(x, layer);
+
+			layer = layersY.getOrDefault(y, new HashSet<>());
+			layer.add(blockMetaInf);
+			layersY.put(y, layer);
+
+			layer = layersZ.getOrDefault(z, new HashSet<>());
+			layer.add(blockMetaInf);
+			layersZ.put(z, layer);
+
+			maxOffsetEast = Math.max(maxOffsetEast, x);
+			maxOffsetTop = Math.max(maxOffsetTop, y);
+			maxOffsetSouth = Math.max(maxOffsetSouth, z);
+			maxOffsetWest = Math.min(maxOffsetWest, x);
+			maxOffsetBottom = Math.min(maxOffsetBottom, y);
+			maxOffsetNorth = Math.min(maxOffsetNorth, z);
 		}
 	}
 
